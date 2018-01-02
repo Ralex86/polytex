@@ -1,25 +1,36 @@
 import React, {Component} from 'react'
 import ReactDOM from 'react-dom'
 import io from 'socket.io-client'
-import styles from './chat.css'
 import FaUser from 'react-icons/lib/fa/user'
 import FaComments from 'react-icons/lib/fa/comments'
 import FaCommentingO from 'react-icons/lib/fa/commenting-o'
 
+import katex from 'katex'
+
+//import styles from './chat.css'
+import styles from './app.css'
 
 class Chat extends Component{
     constructor(props){
         super(props)
         this.state = {
             messages: [],
+            message: '',
             users: [],
-            display: false
+            username: ""
         }
 
         this.handleSubmit = this.handleSubmit.bind(this)
         this.handleDisplay = this.handleDisplay.bind(this)
+        this.updateText = this.updateText.bind(this)
     }
 
+    updateText(event) {
+        var nText = event.target.value;
+        this.setState(function () {
+            return {message: nText}
+            })
+      }
 
     componentDidMount(){
         this.socket = io('/')
@@ -78,12 +89,16 @@ class Chat extends Component{
     }
 
     render(){
+        var message = this.state.message
+
         const messages = this.state.messages.map((message, index) => {
             return ( 
-                <li key={index}>
-                    <b style={{color: '#3377c0'}}>{message.from}</b><span style={{color: '#999',
-padding: '0.5rem'}} >{message.createdAt}</span>
-                    <div i style={{padding: '0.5rem 0.5rem 0.5rem 0'}}>
+                <li className={styles.message} key={index}>
+                    <div className={styles.message__title}>
+                        <h4>{message.from}</h4>
+                        <span>{message.createdAt}</span>
+                    </div>
+                    <div className={styles.message__body}>
                         {message.body}
                     </div>
                 </li>
@@ -94,39 +109,51 @@ padding: '0.5rem'}} >{message.createdAt}</span>
             return <li key={index}><b>{user}</b></li>
         })
 
+
         console.log("how many user connected", this.state.users.length)
         console.log(this.state.display)
         return(
-            <div>
-                <Iconbar>
-                    <Icon>
-                        <FaUser/>
-                        <span className={styles.badge}> {this.state.users.length} </span>
-                    </Icon>
-                    <Icon show={this.handleDisplay}>
-                        <FaComments/>
-                    </Icon>
-                </Iconbar>
-                {this.state.display ?
-                        (
-                            <div className={styles.container}>
-                            <div className={styles.messages}>
-                                {messages}
-                            </div>
-                            <div className={styles.footer}>
-                                <div className={styles.chatinput}>
-                                    <input type='text' placeholder='Enter a message..' onKeyUp={this.handleSubmit}/>
-                            </div>
+            <div className={styles.chat}>
+                <Sidebar>
+                    <h3>Utilisateurs</h3>
+                    <ul>
+                        {users}
+                    </ul>
+                </Sidebar>
+
+                <div className={styles.chat__main}>
+                    <ul className={styles.chat__messages}>
+                        { this.state.message.length > 0 ? (<MathDisplay data={message}/>) : null }
+                        {messages}
+                </ul>
+                    <div className={styles.chat__footer}>
+                        <div className={styles.chat__footerForm}>
+                            <input type='text' placeholder='Enter a message..' onChange={this.updateText}  onKeyUp={this.handleSubmit}/>
+                            <button>Envoyer</button>
                         </div>
-                            </div>
-                        ) : null
-                }
+                    </div>
+                </div>
             </div>
         )
     }
 }
 
+class MathDisplay extends React.Component{
+    constructor(props) {
+        super(props)
+      }
+
+    render() {
+        var math = katex.renderToString(this.props.data,{
+          displayMode: true})
+        return (<p dangerouslySetInnerHTML={ {__html: math} }/>);
+    }
+}
+
 const Iconbar = (props) => (<div className={styles.iconbar} {...props}/>)
+
+const Sidebar = (props) => (<div className={styles.chat__sidebar} {...props}/>)
+//const Users = (props) => (<div className={styles.chat__sidebar} {...props}/>)
 
 class Icon extends React.Component{
     constructor(props){
