@@ -16,34 +16,29 @@ var users = new Users()
 app.use(express.static('public'))
 
 io.on('connection', ( socket ) => {
-    // new user connected !!
-    socket.on('join', (callback) => {
+    //new user connected !!
+    socket.on('join', (login_name, callback) => {
+        
+        console.log(`${login_name} is connected`)
         //prevent user from multiple connection
         users.removeUser(socket.id)
 
-        // the randomize irish name is async...
-        let randId = Math.floor(Math.random() * (1686)) + 1
-        console.log("rand", randId)
-        fetch(`http://alexandre.hassler.fr:3000/name?id=${randId}`)
-            .then(res => res.json())
-            .then(res => {
-                console.log(res)
-                users.addUser(socket.id, res[0].name) // here you set up the random name
-            })
-            .then(() => {
-                io.emit('updateUserList',users.getUserList())
-                socket.broadcast.emit('newMessage', generateMessage('Admin',users.getUser(socket.id)) + 'joins Tunesbook !')
-            })
-            .catch(err => console.log(err))
+        users.addUser(socket.id, login_name)
 
+        socket.emit('username', login_name)
+
+        io.emit('updateUserList',users.getUserList())
+
+        socket.broadcast.emit('message', generateMessage('Admin',users.getUser(socket.id)) + 'a rejoint la salle PolyTeX !')
         callback()
     })
+    
 
-
-    socket.on('message', (body) => {
+    socket.on('message', (message) => {
         var user = users.getUser(socket.id)
-        if (user &&  typeof body === 'string' && body.trim().length > 0){
-            socket.broadcast.emit('message', generateMessage(user.name, body))
+        if (user &&  typeof message.body === 'string' && message.body.trim().length > 0){
+            console.log(message.body)
+            socket.broadcast.emit('message', generateMessage(user.name, message.body, message.latex))
         }
 
     })

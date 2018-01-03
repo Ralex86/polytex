@@ -1,10 +1,11 @@
 var moment = require('moment');
 
-var generateMessage = (from, body) => {
+var generateMessage = (from, body, latex) => {
   return {
     from,
     body,
-    createdAt: moment().format('HH:mm')  //valueOf() //new Date().getTime()
+    createdAt: moment().format('HH:mm'),
+    latex,
   }
 }
 

@@ -5,10 +5,106 @@ import FaUser from 'react-icons/lib/fa/user'
 import FaComments from 'react-icons/lib/fa/comments'
 import FaCommentingO from 'react-icons/lib/fa/commenting-o'
 
+import FaToggleOff from 'react-icons/lib/fa/toggle-off'
+import FaToggleOn from 'react-icons/lib/fa/toggle-on'
+
 import katex from 'katex'
 
-//import styles from './chat.css'
 import styles from './app.css'
+
+class App extends Component{
+    constructor(props){
+        super(props)
+        this.state = {
+            isLogged: false,
+            username: ''
+        }
+
+        this.handleLogin = this.handleLogin.bind(this)
+    }
+
+    handleLogin(user){
+        this.setState((prevState) => {
+            return {
+                username: user,
+                isLogged: !prevState.isLogged
+            }
+        })
+    }
+
+    render() {
+        return (
+            <div style={this.state.isLogged ? {marginLeft: '-100%'} : {marginLeft: 0}} className={styles.container} >
+                <Login handleLogin={this.handleLogin}/>
+                {this.state.isLogged ? (
+                    <div className={styles.chatContainer}>
+                        <Chat username={this.state.username}/>
+                    </div>
+                ) : (
+                    <div className={styles.chatContainer}></div>
+                )}
+            </div>
+        )
+    }
+}
+
+class Login extends Component{
+    constructor(props){
+        super(props)
+        this.state = {
+            username: ''
+        }
+
+        this.handleInputChange = this.handleInputChange.bind(this)
+        this.handleSubmit = this.handleSubmit.bind(this)
+    }
+
+    handleInputChange(event){
+        const target = event.target
+        const value = target.value
+        const name = target.name
+
+        //cool ES6 feature to remember
+        this.setState((prevState) => {
+            return {
+                [name]: value
+            }
+        })
+    }
+
+    handleSubmit(event){
+        const body = event.target.value
+        if(event.keyCode === 13 && body){
+            this.props.handleLogin(this.state.username)
+        }
+    }
+
+    render(){
+        return (
+            <div className={styles.loginContainer}>
+                <div className={styles.loginCard}>
+                    <h3>Messagerie PolyTeX</h3>
+                    <input onKeyUp={this.handleSubmit} name="username" onChange={this.handleInputChange} type='text' placeholder='Entrer nom...' />
+                    <button onClick={() => this.props.handleLogin(this.state.username)}>Entrer chat</button>
+                </div>
+            </div>            
+        )
+    }
+}
+
+class MathDisplay extends React.Component{
+    constructor(props) {
+        super(props)
+      }
+
+    render() {
+        var math = katex.renderToString(this.props.data,{
+            displayMode: true,
+            throwOnError: true
+        })
+        return (<p dangerouslySetInnerHTML={ {__html: math} }/>);
+    }
+}
 
 class Chat extends Component{
     constructor(props){
@@ -17,36 +113,52 @@ class Chat extends Component{
             messages: [],
             message: '',
             users: [],
-            username: ""
+            username: props.username,
+            latex: false
         }
 
         this.handleSubmit = this.handleSubmit.bind(this)
-        this.handleDisplay = this.handleDisplay.bind(this)
         this.updateText = this.updateText.bind(this)
+        this.latexToggle = this.latexToggle.bind(this)
+    }
+
+    latexToggle(){
+        //cool ES6 feature to remember
+        this.setState((prevState) => {
+            return {
+                latex: !prevState.latex
+            }
+        })
     }
 
     updateText(event) {
         var nText = event.target.value;
         this.setState(function () {
-            return {message: nText}
-            })
-      }
+            return {
+                message: nText
+            }
+        })
+    }
 
     componentDidMount(){
-        this.socket = io('/')
+        this.socket = io('http://alexandre.hassler.fr:3001')
+
+        const login_name = this.state.username
 
         this.socket.on('connect', () => {
             console.log('connected to server')
-
-            // joining Tunesbook
-            // callback function to check if everything is ok so far
-            // the callback is send to the server
-            this.socket.emit('join', (err) => {
+            this.socket.emit('join',login_name, (err) => {
                 if (err){
                     alert(err);
                 } else {
                     console.log('No error');
                 }
+            })
+        })
+
+        this.socket.on('newMessage', ( message ) => {
+            this.setState({
+                messages: [ message, ...this.state.messages ]
             })
         })
 
@@ -72,20 +184,15 @@ class Chat extends Component{
         if(event.keyCode === 13 && body){
             const message = {
                 body,
-                from: 'Me'
+                from: this.state.username,
+                latex: this.state.latex
             }
             this.setState({
                 messages: [ message, ...this.state.messages ]
             })
-            this.socket.emit('message', body)
+            this.socket.emit('message', message)
             event.target.value = ''
         }
-    }
-
-    handleDisplay(){
-        this.setState({
-            display: !this.state.display
-        }) 
     }
 
     render(){
@@ -99,7 +206,8 @@ class Chat extends Component{
                         <span>{message.createdAt}</span>
                     </div>
                     <div className={styles.message__body}>
-                        {message.body}
+                        {!message.latex ? 
+                            (message.body) : (<MathDisplay data={message.body}/>)}
                     </div>
                 </li>
             )   
@@ -109,9 +217,7 @@ class Chat extends Component{
             return <li key={index}><b>{user}</b></li>
         })
 
-
         console.log("how many user connected", this.state.users.length)
-        console.log(this.state.display)
         return(
             <div className={styles.chat}>
                 <Sidebar>
@@ -123,13 +229,21 @@ class Chat extends Component{
 
                 <div className={styles.chat__main}>
                     <ul className={styles.chat__messages}>
-                        { this.state.message.length > 0 ? (<MathDisplay data={message}/>) : null }
+                        { this.state.message.length > 0 && this.state.latex ? (<MathDisplay data={message}/>) : null }
                         {messages}
                 </ul>
                     <div className={styles.chat__footer}>
                         <div className={styles.chat__footerForm}>
                             <input type='text' placeholder='Enter a message..' onChange={this.updateText}  onKeyUp={this.handleSubmit}/>
-                            <button>Envoyer</button>
+                            {this.state.latex ? (
+                                <div className={styles.latexToggle} onClick={this.latexToggle}>
+                                    <FaToggleOn/> 
+                                </div> 
+                            ) : (
+                                <div className={styles.latexToggle} onClick={this.latexToggle}>
+                                    <FaToggleOff/>
+                                </div> 
+                            )}
                         </div>
                     </div>
                 </div>
@@ -138,58 +252,14 @@ class Chat extends Component{
     }
 }
 
-class MathDisplay extends React.Component{
-    constructor(props) {
-        super(props)
-      }
-
-    render() {
-        var math = katex.renderToString(this.props.data,{
-          displayMode: true})
-        return (<p dangerouslySetInnerHTML={ {__html: math} }/>);
-    }
-}
 
 const Iconbar = (props) => (<div className={styles.iconbar} {...props}/>)
 
 const Sidebar = (props) => (<div className={styles.chat__sidebar} {...props}/>)
-//const Users = (props) => (<div className={styles.chat__sidebar} {...props}/>)
 
-class Icon extends React.Component{
-    constructor(props){
-        super(props)
-
-        this.state = {
-            open: false
-        }
-
-        this.handleClick = this.handleClick.bind(this)
-    }
-
-    handleClick(callback){
-        this.setState({
-            open: !this.state.open
-        })
-        callback()
-    }
-
-    
-    render(){
-        console.log(this.props)
-        return this.state.open ? (
-            <div onClick={this.handleClick(this.props.show)} className={styles.open}>
-                {this.props.children}
-            </div>
-        ) : (
-            <div onClick={this.handleClick} className={styles.close}>
-                {this.props.children}
-            </div>
-        )
-    }
-}
 
 ReactDOM.render(
-    <Chat/>
+    <App/>
     ,
     document.getElementById('app')
 ) 
