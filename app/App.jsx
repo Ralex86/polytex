@@ -113,7 +113,7 @@ class Chat extends Component{
         super(props)
         this.state = {
             messages: [],
-            message: '',
+            latexOutput: '',
             users: [],
             username: props.username,
             latex: false
@@ -137,7 +137,7 @@ class Chat extends Component{
         var nText = event.target.value;
         this.setState(function () {
             return {
-                message: nText
+                latexOutput: nText
             }
         })
     }
@@ -203,7 +203,8 @@ class Chat extends Component{
                 latex: this.state.latex
             }
             this.setState({
-                messages: [ message, ...this.state.messages ]
+                messages: [ message, ...this.state.messages ],
+                latexOutput: ''
             })
             this.socket.emit('message', message)
             event.target.value = ''
@@ -211,7 +212,7 @@ class Chat extends Component{
     }
 
     render(){
-        var message = this.state.message
+        var latexOutput = this.state.latexOutput
 
         const messages = this.state.messages.map((message, index) => {
             return ( 
@@ -232,7 +233,6 @@ class Chat extends Component{
             return <li key={index}><b>{user}</b></li>
         })
 
-        console.log("how many user connected", this.state.users.length)
         return(
             <div className={styles.chat}>
                 <Sidebar>
@@ -241,10 +241,13 @@ class Chat extends Component{
                         {users}
                     </ul>
                 </Sidebar>
+                
+                <div className={styles.latexOutputContainer}>
+                    { this.state.latex ? (<MathDisplay data={latexOutput}/>) : null }
+                </div>
 
                 <div className={styles.chat__main}>
                     <ul className={styles.chat__messages}>
-                        { this.state.message.length > 0 && this.state.latex ? (<MathDisplay data={message}/>) : null }
                         {messages}
                 </ul>
                     <div className={styles.chat__footer}>

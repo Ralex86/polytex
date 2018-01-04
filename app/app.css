@@ -1,3 +1,22 @@
+.latexOutputContainer{
+    position: absolute;
+    z-index: 5;
+    bottom: 4rem;
+    /* width: 18rem; */
+    max-width: 90%;
+    padding: .625rem 1rem;
+    margin: 1rem;
+    font-size: 1rem;
+    color: #fff;
+    background: #333;
+    border-radius: .25rem;
+    opacity: .9;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    -webkit-box-shadow: 0 2px 10px rgba(0, 0, 0, .3);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, .3)
+}
+
 .container{
     width: 200%;
     overflow: hidden;
