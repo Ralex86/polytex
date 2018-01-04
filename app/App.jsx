@@ -1,6 +1,8 @@
 import React, {Component} from 'react'
 import ReactDOM from 'react-dom'
 import io from 'socket.io-client'
+import 'whatwg-fetch'
+
 import FaUser from 'react-icons/lib/fa/user'
 import FaComments from 'react-icons/lib/fa/comments'
 import FaCommentingO from 'react-icons/lib/fa/commenting-o'
@@ -141,6 +143,19 @@ class Chat extends Component{
     }
 
     componentDidMount(){
+
+        fetch('http://alexandre.hassler.fr:3001/discussion')
+            .then(res => res.json())
+            .then(messages => {
+                console.log(messages)
+                this.setState({
+                    messages:  [...messages]
+                })
+
+            })
+            .catch(err => console.log(err))
+
+
         this.socket = io('http://alexandre.hassler.fr:3001')
 
         const login_name = this.state.username
